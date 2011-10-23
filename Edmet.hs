@@ -2,14 +2,15 @@ import Network.HTTP
 import Text.XML.Light
 
 import Maybe 
+import System
 
-openUrl :: String -> IO String
-openUrl x = getResponseBody =<< simpleHTTP (getRequest x)
+import Print
+
 
 weatherTypes = zip [0..] [
-        "Clear sky (night)",
+        "Clear sky",
         "Sunny",
-        "Partly cloudy (night)",
+        "Partly cloudy",
         "Sunny intervals",
         "Dust",
         "Mist",
@@ -58,26 +59,41 @@ data Day = Day{
     weather :: [Weather]
 } deriving Show
 
+openUrl :: String -> IO String
+openUrl x = getResponseBody =<< simpleHTTP (getRequest x)
+
 main :: IO ()
 main = do
-    xmlStr <- openUrl "http://www.metoffice.gov.uk/public/data/PWSCache/BestForecast/Forecast/351351"
-    days <- return $ parseXmlData xmlStr
+    args <- getArgs
 
-    renderHeading
-    mapM renderDay days
+    xmlStr <- openUrl "http://www.metoffice.gov.uk/public/data/PWSCache/BestForecast/Forecast/351351"
+
+    days <- return $ (parseXmlData xmlStr) 
+
+
+
+
+    printTable ["date", "time", "temp", "weather"] $ convDaysToTbl days
 
     return ()
 
 -- -----------------------------------------------------------------------------
 -- Converting into a table
-convertToTable days = 
+convDaysToTbl days = concat $ map convDayToTbl days
+
+convDayToTbl day = [date day, "", "", "", ""] : ((weatherToTable (weather day)) ++ [["\n", "", "", "", ""]])
 
 weatherToTable :: [Weather] -> [[String]]
 weatherToTable w = map wtot w
 
-wtot = Weather -> [String]
-wtot = [show $ time w, show $ temp w]
-    
+wtot :: Weather -> [String]
+wtot w = ["",
+          timeToString (time w),
+          (show $ round (temp w)) ++ "c",
+          fromJust $ lookup (weatherType w) weatherTypes]
+
+timeToString (x:y:_) = [x, y] ++ "00"
+
 -- -----------------------------------------------------------------------------
 -- XML Parsing stuff
 parseXmlData str = map parseDay days

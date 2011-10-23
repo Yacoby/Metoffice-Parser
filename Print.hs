@@ -5,7 +5,6 @@ printTable headings table = do
     width <- return $ map (+2) $ widths headings table
     printRow width headings
     putStr "\n"
-    putStrLn (take (sum $ width) $ repeat '-')
     mapM (printRow width) table
     return ()
 
